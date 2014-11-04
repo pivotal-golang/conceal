@@ -1,3 +1,4 @@
+// Package conceal provides the ability to encrypt/decrypt byte slices using aes encryption.
 package conceal
 
 import (
@@ -16,15 +17,18 @@ type CloakInterface interface {
 
 type CipherLengthError struct{}
 
+// CipherLengthError occurs when the data passed in to Unveil is shorter than the length of the 16 byte encryption key.
 func (err CipherLengthError) Error() string {
-    return "Data length is too short"
+    return "Data length should be at least 16 bytes"
 }
 
+// A Cloak encrypts and decrypts []byte using Veil and Unveil.
 type Cloak struct {
-    pin         []byte
     cipherBlock cipher.Block
 }
 
+// NewCloak takes a pin that is resized to 16 bytes and used as a key in aes encryption.
+// It returns a Cloak. If the pin cannot be used to create a cipherBlock, an error is returned.
 func NewCloak(pin []byte) (Cloak, error) {
     resizedPin := resizePin(pin)
 
@@ -34,7 +38,6 @@ func NewCloak(pin []byte) (Cloak, error) {
     }
 
     return Cloak{
-        pin:         resizedPin,
         cipherBlock: cipherBlock,
     }, nil
 }
@@ -44,6 +47,8 @@ func resizePin(pin []byte) []byte {
     return resizedPin[:]
 }
 
+// Veil base64 encodes a slice of bytes and uses aes encryption. It returns an encrypted slice of bytes,
+// and an error.
 func (cloak Cloak) Veil(data []byte) ([]byte, error) {
     encodedText := base64.StdEncoding.EncodeToString(data)
     cipherText := make([]byte, aes.BlockSize+len(encodedText))
@@ -62,6 +67,8 @@ func (cloak Cloak) Veil(data []byte) ([]byte, error) {
     return []byte(base64CipherText), nil
 }
 
+// Unveil base64 decodes a slice of bytes and uses aes encryption to decrypt. It returns a decrypted slice of bytes,
+// and an error. A CipherLengthError is returned if the data is less than 16 bytes.
 func (cloak Cloak) Unveil(data []byte) ([]byte, error) {
     decodedData, err := base64.URLEncoding.DecodeString(string(data))
     if err != nil {

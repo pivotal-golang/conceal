@@ -91,7 +91,7 @@ var _ = Describe("Cloak", func() {
                 _, err = cloak.Unveil([]byte("oops"))
 
                 Expect(err).To(BeAssignableToTypeOf(conceal.CipherLengthError{}))
-                Expect(err.Error()).To(Equal("Data length is too short"))
+                Expect(err.Error()).To(Equal("Data length should be at least 16 bytes"))
             })
 
             It("the data does not comply with base64 encoding", func() {
