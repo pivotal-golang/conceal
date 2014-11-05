@@ -6,7 +6,6 @@ import (
     "crypto/cipher"
     "crypto/rand"
     "encoding/base64"
-    "io"
 )
 
 type CloakInterface interface {
@@ -52,7 +51,7 @@ func (cloak Cloak) Veil(data []byte) ([]byte, error) {
     cipherText := make([]byte, aes.BlockSize+len(encodedData))
 
     initializationVector := cipherText[:aes.BlockSize]
-    _, err := io.ReadFull(rand.Reader, initializationVector)
+    _, err := rand.Read(initializationVector)
     if err != nil {
         return []byte{}, err
     }
