@@ -69,10 +69,11 @@ func (cloak Cloak) Veil(data []byte) ([]byte, error) {
 // and an error. A CipherLengthError is returned if the data is less than 16 bytes.
 func (cloak Cloak) Unveil(data []byte) ([]byte, error) {
     decodedData := make([]byte, base64.URLEncoding.DecodedLen(len(data)))
-    _, err := base64.URLEncoding.Decode(decodedData, data)
+    n, err := base64.URLEncoding.Decode(decodedData, data)
     if err != nil {
         return []byte{}, err
     }
+    decodedData = decodedData[:n]
 
     if len(decodedData) < aes.BlockSize {
         return []byte{}, CipherLengthError{}
@@ -85,7 +86,7 @@ func (cloak Cloak) Unveil(data []byte) ([]byte, error) {
     cipherDecrypter.XORKeyStream(decodedData, decodedData)
 
     decoded := make([]byte, base64.StdEncoding.DecodedLen(len(decodedData)))
-    n, err := base64.StdEncoding.Decode(decoded, decodedData)
+    n, err = base64.StdEncoding.Decode(decoded, decodedData)
     if err != nil {
         return []byte{}, err
     }
