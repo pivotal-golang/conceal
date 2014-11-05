@@ -3,15 +3,16 @@ package conceal_test
 import (
     "regexp"
 
+    "github.com/pivotal-golang/conceal"
+
     . "github.com/onsi/ginkgo"
     . "github.com/onsi/gomega"
-    "github.com/pivotal-golang/conceal"
 )
 
 var _ = Describe("Cloak", func() {
 
     Describe("NewCloak", func() {
-        It("returns a Cloak when the pin is valid", func() {
+        It("returns a Cloak when the key is valid", func() {
             cloak, err := conceal.NewCloak([]byte("sixteenbytes!!!!"))
             if err != nil {
                 panic(err)
@@ -61,7 +62,7 @@ var _ = Describe("Cloak", func() {
 
         })
 
-        It("Veil and unveil still works with a small pin", func() {
+        It("Veil and unveil still works with a small key", func() {
             cloak, err := conceal.NewCloak([]byte("small"))
             if err != nil {
                 panic(err)

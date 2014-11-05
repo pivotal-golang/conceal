@@ -4,7 +4,6 @@ package conceal
 import (
     "crypto/aes"
     "crypto/cipher"
-    "crypto/md5"
     "crypto/rand"
     "encoding/base64"
     "io"
@@ -27,12 +26,10 @@ type Cloak struct {
     cipherBlock cipher.Block
 }
 
-// NewCloak takes a pin that is resized to 16 bytes and used as a key in aes encryption.
-// It returns a Cloak. If the pin cannot be used to create a cipherBlock, an error is returned.
-func NewCloak(pin []byte) (Cloak, error) {
-    resizedPin := resizePin(pin)
-
-    cipherBlock, err := aes.NewCipher(resizedPin)
+// NewCloak takes a key that is resized to 16 bytes and used as a key in AES encryption.
+// It returns a Cloak. If the key cannot be used to create a cipherBlock, an error is returned.
+func NewCloak(key []byte) (Cloak, error) {
+    cipherBlock, err := aes.NewCipher(resizeKey(key))
     if err != nil {
         return Cloak{}, err
     }
@@ -42,55 +39,56 @@ func NewCloak(pin []byte) (Cloak, error) {
     }, nil
 }
 
-func resizePin(pin []byte) []byte {
-    resizedPin := md5.Sum(pin)
-    return resizedPin[:]
+func resizeKey(key []byte) []byte {
+    key = append(key, make([]byte, 16)...)
+    return key[:16]
 }
 
 // Veil base64 encodes a slice of bytes and uses aes encryption. It returns an encrypted slice of bytes,
 // and an error.
 func (cloak Cloak) Veil(data []byte) ([]byte, error) {
-    encodedText := base64.StdEncoding.EncodeToString(data)
-    cipherText := make([]byte, aes.BlockSize+len(encodedText))
+    encodedData := make([]byte, base64.StdEncoding.EncodedLen(len(data)))
+    base64.StdEncoding.Encode(encodedData, data)
+    cipherText := make([]byte, aes.BlockSize+len(encodedData))
 
     initializationVector := cipherText[:aes.BlockSize]
     _, err := io.ReadFull(rand.Reader, initializationVector)
-
     if err != nil {
         return []byte{}, err
     }
 
     cipherEncrypter := cipher.NewCFBEncrypter(cloak.cipherBlock, initializationVector)
-    cipherEncrypter.XORKeyStream(cipherText[aes.BlockSize:], []byte(encodedText))
+    cipherEncrypter.XORKeyStream(cipherText[aes.BlockSize:], encodedData)
 
-    base64CipherText := base64.URLEncoding.EncodeToString(cipherText)
-    return []byte(base64CipherText), nil
+    base64CipherText := make([]byte, base64.URLEncoding.EncodedLen(len(cipherText)))
+    base64.URLEncoding.Encode(base64CipherText, cipherText)
+    return base64CipherText, nil
 }
 
 // Unveil base64 decodes a slice of bytes and uses aes encryption to decrypt. It returns a decrypted slice of bytes,
 // and an error. A CipherLengthError is returned if the data is less than 16 bytes.
 func (cloak Cloak) Unveil(data []byte) ([]byte, error) {
-    decodedData, err := base64.URLEncoding.DecodeString(string(data))
+    decodedData := make([]byte, base64.URLEncoding.DecodedLen(len(data)))
+    _, err := base64.URLEncoding.Decode(decodedData, data)
     if err != nil {
         return []byte{}, err
     }
 
-    byteData := decodedData
-
-    if len(byteData) < aes.BlockSize {
+    if len(decodedData) < aes.BlockSize {
         return []byte{}, CipherLengthError{}
     }
 
-    initializationVector := byteData[:aes.BlockSize]
-    byteData = byteData[aes.BlockSize:]
+    initializationVector := decodedData[:aes.BlockSize]
+    decodedData = decodedData[aes.BlockSize:]
 
     cipherDecrypter := cipher.NewCFBDecrypter(cloak.cipherBlock, initializationVector)
-    cipherDecrypter.XORKeyStream(byteData, byteData)
+    cipherDecrypter.XORKeyStream(decodedData, decodedData)
 
-    decoded, err := base64.StdEncoding.DecodeString(string(byteData))
+    decoded := make([]byte, base64.StdEncoding.DecodedLen(len(decodedData)))
+    n, err := base64.StdEncoding.Decode(decoded, decodedData)
     if err != nil {
         return []byte{}, err
     }
 
-    return []byte(decoded), nil
+    return decoded[:n], nil
 }
