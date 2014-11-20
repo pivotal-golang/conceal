@@ -4,6 +4,7 @@ package conceal
 import (
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/md5"
 	"crypto/rand"
 	"encoding/base64"
 )
@@ -39,8 +40,8 @@ func NewCloak(key []byte) (Cloak, error) {
 }
 
 func resizeKey(key []byte) []byte {
-	key = append(key, make([]byte, 16)...)
-	return key[:16]
+	resizedKey := md5.Sum(key)
+	return resizedKey[:]
 }
 
 // Veil base64 encodes a slice of bytes and uses aes encryption. It returns an encrypted slice of bytes,
