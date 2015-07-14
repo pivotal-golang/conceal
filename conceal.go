@@ -1,4 +1,6 @@
 // Package conceal provides the ability to encrypt/decrypt byte slices using aes encryption.
+// Its primary job is to encrypt and base64-encode a byte slice.
+// It base64-decodes and decrypts data given a Cloak instantited with the same pin used to encrypt the data.
 package conceal
 
 import (
